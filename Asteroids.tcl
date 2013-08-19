@@ -12,23 +12,23 @@ set flag(SKey_down) 0
 set refresh 1
 set pi 3.141592654
 #set pi 3.1415926535897932384626433832795
-set gravity(dir_velocity_vec) {0 0}
+set gravity(dir_velocity_vec) {0 .03}
 
 # Ship Coord Configs
 set polygon(smallShip) {0 5 5 -5 0 -2 -5 -5 0 5}
 set polygon(smallShip2) {100 105 105 95 100 98 95 95 100 105}
 set polygon(largeShip) {0 20 1 19 1 17 2 16 2 4 6 3 6 6 7 7 7 8 8 9 9 8 9 7 10 6 10 1 16 -3 16 -4 10 -4 10 -6 8 -7 6 -6 6 -4 -6 -4 -6 -6 -8 -7 -10 -6 -10 -4 -16 -4 -16 -3 -10 1 -10 6 -9 7 -9 8 -8 9 -7 8 -7 7 -6 6 -6 3 -2 4 -2 16 -1 17 -1 19 0 20}
 set polygon(plane) {0 19 3 16 3 3 18 1 20 -3 3 -3 3 -15 10 -17 10 -18 -10 -18 -10 -17 -3 -15 -3 -3 -20 -3 -18 1 -3 3 -3 16 0 19}
-set polygon(erics_ship) { 0 10 10 -10      6 -8 6 -13 5 -15 4 -13 4 -8 0 -6 -4 -8 -4 -13 -5 -15 -6 -13 -6 -8   -10 -10      -2 6 -2 3 0 4 2 3 2 6 0 7 -2 6 0 10 }
-set polygon(erics_ship2) { 0 10 10 -10      6 -8 6 -13 5 -15 4 -13 4 -8 0 -6 -4 -8 -4 -13 -5 -15 -6 -13 -6 -8   -10 -10      -2 6 -2 3 0 4 2 3 2 6 0 7 -2 6 0 10 }
+set polygon(erics_ship) { 0 10 10 -10 6 -8 6 -13 5 -15 4 -13 4 -8 0 -6 -4 -8 -4 -13 -5 -15 -6 -13 -6 -8   -10 -10      -2 6 -2 3 0 4 2 3 2 6 0 7 -2 6 0 10 }
+set polygon(erics_ship2) { 0 10 10 -10 6 -8 6 -13 5 -15 4 -13 4 -8 0 -6 -4 -8 -4 -13 -5 -15 -6 -13 -6 -8   -10 -10      -2 6 -2 3 0 4 2 3 2 6 0 7 -2 6 0 10 }
 
 # Graphics Engine Configs
 set sprite(ship,init_pos) $polygon(smallShip)
 set sprite(ship,center_pos) {0 0}
 set sprite(ship,dir_velocity_vec:new) {0 0}
 set sprite(ship,dir_velocity_vec:old) {0 0}
-set sprite(ship,scale:x) 6
-set sprite(ship,scale:y) 6
+set sprite(ship,scale:x) 3
+set sprite(ship,scale:y) 3
 set sprite(ship,rotate_velocity) .05
 set sprite(ship,forward_velocity) .1
 set sprite(ship,current_dir_angle) [expr $pi / 2]
@@ -146,6 +146,27 @@ proc relocateShip_ifGone {} {
     if {[lindex $sprite(ship,center_pos) 1] < 0} then {putShip_at [lindex $sprite(ship,center_pos) 0] [winfo height .c]}
 }
 
+proc bounceShip_ifGone {} {
+    global sprite
+
+    set curVecX [lindex $sprite(ship,dir_velocity_vec:new) 0]
+    set curVecY [lindex $sprite(ship,dir_velocity_vec:new) 1]
+
+    set oppVecX [expr $curVecX * -1]
+    set oppVecY [expr $curVecY * -1]
+
+	set newVelVec [list $curVecX $curVecY]
+
+    if {[lindex $sprite(ship,center_pos) 0] > [winfo width .c]} then {set newVelVec [list $oppVecX $curVecY]}
+    if {[lindex $sprite(ship,center_pos) 0] < 0} then {set newVelVec [list $oppVecX $curVecY]}
+
+    if {[lindex $sprite(ship,center_pos) 1] > [winfo height .c]} then {set newVelVec [list $curVecX [expr .7 * $oppVecY]]}
+    if {[lindex $sprite(ship,center_pos) 1] < 0} then {set newVelVec [list $curVecX $oppVecY]}
+
+    set sprite(ship,dir_velocity_vec:new) $newVelVec
+
+}
+
 # This is the main driving proc, keeps the animation cycles going,
 # as well as calls the procs for moving and calculating new directions
 # and rotations based off of keypress states.
@@ -157,7 +178,8 @@ proc ast_timer {} {
     if $flag(SKey_down)     then {set sprite(ship,dir_velocity_vec:new) {0 0}}
     moveShip_currentDir
     add_gravity
-    relocateShip_ifGone
+#relocateShip_ifGone
+bounceShip_ifGone
     update idletasks
     after $refresh ast_timer
 }
